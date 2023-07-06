@@ -1,0 +1,34 @@
+version: 2.1
+
+parameters:
+  foobar:
+    default: '${FOOBAR}-$(date +"%m-%d-%y-%H-%M")'
+    type: string
+    description: Tag the AWS S3 folder with the name and date.
+
+jobs:
+  noop:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run: echo "noop"
+  build:
+    docker:
+      - image: cimg/base:current
+    resource_class: small
+    steps:
+      - run: echo "BUILD!!!"
+
+workflows:
+  based_on_foobar:
+    when:
+      equal: [ '${FOOBAR}-$(date +"%m-%d-%y-%H-%M")', << pipeline.parameters.foobar >> ]
+    jobs:
+      - build
+  opposite:
+    when:
+      not:
+        equal: [ '${FOOBAR}-$(date +"%m-%d-%y-%H-%M")', << pipeline.parameters.foobar >> ]
+    jobs:
+      - noop
