@@ -1,34 +1,46 @@
 version: 2.1
 
-parameters:
-  foobar:
-    default: '${FOOBAR}-$(date +"%m-%d-%y-%H-%M")'
-    type: string
-    description: Tag the AWS S3 folder with the name and date.
+orbs:
+  cit:
+    version: 2.1
+    description: "sample inline orb"
+    commands:
+      bundler-preamble:
+        steps:
+          - run: bundle -v
+    jobs:
+      rspec-run:
+        parameters:
+          envvar1:
+            type: string
+            description: value for SAMPLE_ENV_VAR1
+          envvar2:
+            type: string
+            description: value for SAMPLE_ENV_VAR2
+          envvar3:
+            type: string
+            description: value for SAMPLE_ENV_VAR3
+        executor: default
+        environment:
+          SAMPLE_ENV_VAR1: << parameters.envvar1 >>
+          SAMPLE_ENV_VAR2: << parameters.envvar2 >>
+          SAMPLE_ENV_VAR3: << parameters.envvar3 >>
+        steps:
+          - run: |
+              env | grep -e "^SAMPLE_ENV_VAR.*$"
+          - bundler-preamble
+    executors:
+      default:
+        docker:
+          - image: cimg/ruby:3.2
 
-jobs:
-  noop:
-    docker:
-      - image: cimg/base:current
-    resource_class: small
-    steps:
-      - run: echo "noop"
-  build:
-    docker:
-      - image: cimg/base:current
-    resource_class: small
-    steps:
-      - run: echo "BUILD!!!"
 
 workflows:
-  based_on_foobar:
-    when:
-      equal: [ '${FOOBAR}-$(date +"%m-%d-%y-%H-%M")', << pipeline.parameters.foobar >> ]
+  sample-workflow:
     jobs:
-      - build
-  opposite:
-    when:
-      not:
-        equal: [ '${FOOBAR}-$(date +"%m-%d-%y-%H-%M")', << pipeline.parameters.foobar >> ]
-    jobs:
-      - noop
+      - cit/rspec-run:
+          # contains FOO env var
+          context: foo-1
+          envvar1: "test"
+          envvar2: "cannot-be-a-sensitive-value"
+          envvar3: "fizzbuzz"
